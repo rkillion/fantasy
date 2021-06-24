@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="./style.css">
+    </head>
+    <body onload="checkFileAPI();">
+        <button type="button" onclick="saveStaticDataToFile();">Click to Save</button>
+        <div id="container">    
+        <input type="file" onchange='readText(this)' />
+        </div>
+        <h1>Fantasy</h1>
+        <div id="mainMapFrame">
+            <div id="subMapBox1" class="subMapBox" draggable="true"></div>
+            <img id="mainMap" src="./maps/PrimaryWorldNoGrid.png" alt="Main Map">
+        </div>
+    </body>
+    <script src="./code.js"></script>
+    <script src="./FileSaver.js/dist/FileSaver.js"></script>
+</html>

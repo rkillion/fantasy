@@ -1,0 +1,23 @@
+#mainMapFrame {
+    width: 1200px;
+    height: auto;
+}
+
+/*
+#mainMap {
+    width: 1200px;
+    height: auto;
+    z-index: 0;
+}
+*/
+
+.subMapBox {
+    display: block;
+    position: absolute;
+    left: 2770px;
+    top: 435px;
+    width: 601px;
+    height: 601px;
+    border: 1px solid black;
+    z-index: 1;
+}
