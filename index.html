@@ -7,8 +7,18 @@
         <button type="button" onclick="saveStaticDataToFile();">Click to Save</button>
         <div id="container">    
         <input type="file" onchange='readText(this)' />
+        <button type="button" onclick="runButtonFunction();">Run</button>
         </div>
         <h1>Fantasy</h1>
+        <form autocomplete="off">
+            <div class="autocomplete" style="width:300px;">
+              <input id="mapHandleInput" type="text" name="mapHandle" placeholder="mapHandle">
+            </div>
+          </form>
+          <button type="button" onclick="loadMap();">Load Map</button><button type="button" onclick="saveMap();">Save Map</button><button id="seaButton" class="drawButton" type="button" onclick="drawSea();">Sea</button><button id="landButton" class="drawButton" type="button" onclick="drawLand();">Land</button>
+        <div id="gridMapFrame">
+
+        </div>
         <div id="mainMapFrame">
             <div id="subMapBox1" class="subMapBox" draggable="true"></div>
             <img id="mainMap" src="./maps/PrimaryWorldNoGrid.png" alt="Main Map">
