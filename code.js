@@ -6,6 +6,9 @@ const continent = {title: "continentTitle",population: 0,kingdoms: [],linkedTags
 const mapTypes = ["world","continent","subcontinent","kingdom","province"]
 const gridMapFrameHeight = 601;
 const gridMapFrameWidth = 1201;
+const politicalColorPalette = ["#86a0a1","#942625","#465523","#c0562d","#493d57","#cb9833","#73aec0","#8e3257","#1f3158","#6d3c56","#1b3155","#22527e","#dbbc4a","#47476e","#cd7032","#1f3f47","#ca5845","#678a70"]
+
+//consider zoning for difficulty level in certain areas
 
 let gridUnitChangeColor = "lightblue";
 
@@ -37,7 +40,8 @@ function createPlace(name,handle,numOfSubMaps=0,population=basePopulation,parent
     for (let i=0;i<subMapCount;i++) {
         let thisSubMap = {};
         thisSubMap.title = `${mapTypes[mapTypes.indexOf(newPlace.type)+1]}${i}`;
-        thisSubMap.type = mapTypes[mapTypes.indexOf(parentMap.type)+1]
+        thisSubMap.type = mapTypes[mapTypes.indexOf(parentMap.type)+1];
+        thisSubMap.polColor = politicalColorPalette[i];
         if (i===subMapCount-1){
             thisSubMap.population = remainingPopulation;
         } else {
@@ -50,6 +54,7 @@ function createPlace(name,handle,numOfSubMaps=0,population=basePopulation,parent
     newPlace.subMap = submapArray;
     newPlace.tags = [...tags,name,handle];
     if(parentMap) {parentMap.subMap[thisPlaceReference].title = newPlace.title;}
+    if(parentMap) {parentMap.subMap[thisPlaceReference].handle = handle;}
     if(parentMap) {parentMap.subMap[thisPlaceReference].assigned = true;}
     places = {...places,[handle]: newPlace};
     return newPlace;
@@ -112,20 +117,20 @@ function subMapDimensionsFromGenerated(map,percentToUse,height=2000,width=4000,s
 let changeColorOnMouseOver = false;
 
 function generateGrid() {
-    for (let p=1;p<=60;p++){
-    for (let i=1;i<=120;i++) {
+    for (let p=1;p<=75;p++){
+    for (let i=1;i<=150;i++) {
     let gridUnit = document.createElement("div");
     gridUnit.id = `${p}-${i}`;
-    gridUnit.style.left=`${(i-1)*10}px`;
-    gridUnit.style.top=`${(p-1)*10}px`;
+    gridUnit.style.left=`${(i-1)*8}px`;
+    gridUnit.style.top=`${(p-1)*8}px`;
     gridUnit.style.display= "block";
     gridUnit.style.position="absolute";
-    gridUnit.style.border = "1px solid grey";
+    //gridUnit.style.border = "1px solid grey";
     gridUnit.style.background = "lightblue";
-    gridUnit.style.borderLeft = "0px";
-    gridUnit.style.borderTop = "0px";
-    gridUnit.style.height = "9px";
-    gridUnit.style.width = "9px";
+    //gridUnit.style.borderLeft = "0px";
+    //gridUnit.style.borderTop = "0px";
+    gridUnit.style.height = "8px";
+    gridUnit.style.width = "8px";
     gridUnit.addEventListener("mousedown", function() {changeColorOnMouseOver=true});
     gridUnit.addEventListener("mouseup",function() {changeColorOnMouseOver=false});
     gridUnit.addEventListener("mouseover",mouseoverGridBoxColor);
@@ -148,8 +153,8 @@ function mouseoverGridBoxColor(event) {
 
 function loadMap() {
     let map = document.getElementById("mapHandleInput").value;
-    for (let p=1;p<=60;p++){
-        for (let i=1;i<=120;i++) {
+    for (let p=1;p<=75;p++){
+        for (let i=1;i<=150;i++) {
             let thisGridUnit = document.getElementById(`${p}-${i}`);
             thisGridUnit.style.background = places[map].grid[`${p}-${i}`];
         }
@@ -159,8 +164,8 @@ function loadMap() {
 function saveMap() {
     let map = document.getElementById("mapHandleInput").value;
     let thisMap = {};
-    for (let p=1;p<=60;p++){
-        for (let i=1;i<=120;i++) {
+    for (let p=1;p<=75;p++){
+        for (let i=1;i<=150;i++) {
             let thisGridUnit = document.getElementById(`${p}-${i}`);
             thisMap[`${p}-${i}`] = thisGridUnit.style.background;
         }
@@ -186,6 +191,119 @@ function clearButtons() {
         element.style.background = "lightcyan";
     }
 }
+
+function zoomInGrid() {}
+
+function getRandomGridPoint() {
+    let p = randomIntBetween(1,75);
+    let i = randomIntBetween(1,150);
+    return document.getElementById(`${p}-${i}`);
+}
+
+function randomizeMap(mapHandle,percentWater=60,rowsOfIce=8) {
+    let unitsOfIce = rowsOfIce*150;
+    let unitsOfWater = 11250*percentWater/100;
+    let unitsOfLand = 11250-unitsOfWater;
+    let grid = {};
+    let seeds = {};
+    let unitsOfLandRemaining = unitsOfLand;
+    for (const element of places[mapHandle].subMap) {
+        let thisUnit;
+        do {
+            thisUnit = getRandomGridPoint();
+        } while (!(Object.keys(grid).indexOf(thisUnit.id)===-1));
+        seeds[element.handle] = {};
+        seeds[element.handle].idRef = thisUnit.id;
+        seeds[element.handle].polColor = element.polColor;
+        if(places[mapHandle].subMap.indexOf(element)===places[mapHandle].subMap.length-1) {
+            seeds[element.handle].landUnitsNum = unitsOfLandRemaining;
+        } else {
+            seeds[element.handle].landUnitsNum = Math.round(unitsOfLandRemaining/((places[mapHandle].subMap.length-places[mapHandle].subMap.indexOf(element))/2) * Math.random());
+            unitsOfLandRemaining = unitsOfLandRemaining - seeds[element.handle].landUnitsNum;
+        }
+        grid[thisUnit.id] = {geoColor: "green",polColor: element.polColor};
+        thisUnit.style.background = element.polColor;
+    }
+    console.log(seeds);
+    console.log(grid);
+    let landCreated = 0;
+    for (const seedKey in seeds) {
+        let remainingLand = seeds[seedKey].landUnitsNum;
+        let buildPoints = {}
+        buildPoints[seeds[seedKey].idRef] = ["up","right","down","left"];
+        let counter = 0;
+        while (remainingLand>0&&(buildPoints&&counter<11250)) {
+            console.log(`Counter: ${counter}`);
+            console.log(buildPoints);
+            let thisSet = Object.assign({},buildPoints)
+            for (const key in thisSet) {
+                for(const element of thisSet[key]) {
+                    if (remainingLand>0) {
+                        let baseCoordinatesString = key.split("-");
+                        let baseCoordinates = [parseInt(baseCoordinatesString[0]),parseInt(baseCoordinatesString[1])];
+                        //console.log(baseCoordinates);
+                        let newCoordinates;
+                        if (element==="up") {
+                            newCoordinates = [baseCoordinates[0]-1,baseCoordinates[1]];
+                            //console.log(`Took ${element}: ${newCoordinates}`);
+                        }
+                        if (element==="right") {
+                            newCoordinates = [baseCoordinates[0],baseCoordinates[1]+1];
+                            //console.log(`Took ${element}: ${newCoordinates}`);
+                        }
+                        if (element==="down") {
+                            newCoordinates = [baseCoordinates[0]+1,baseCoordinates[1]];
+                            //console.log(`Took ${element}: ${newCoordinates}`);
+                        }
+                        if (element==="left") {
+                            newCoordinates = [baseCoordinates[0],baseCoordinates[1]-1];
+                            //console.log(`Took ${element}: ${newCoordinates}`);
+                        }
+                        if (!(newCoordinates[0]<1||(newCoordinates[0]>75||(newCoordinates[1]<1||newCoordinates[1]>150)))){
+                            let thisUnitRef = `${newCoordinates[0]}-${newCoordinates[1]}`;
+                            if(!grid[thisUnitRef]||grid[thisUnitRef].geoColor==="lightblue") {
+                                grid[thisUnitRef] = {geoColor: "lightblue", polColor: "lightblue"};
+                                let landChance = 100-(70*((seeds[seedKey].landUnitsNum-remainingLand)/seeds[seedKey].landUnitsNum));
+                                let landRoll = randomIntBetween(0,99);
+                                if (landRoll<landChance) {
+                                    document.getElementById(thisUnitRef).style.background = seeds[seedKey].polColor;
+                                    grid[thisUnitRef].geoColor = "green";
+                                    grid[thisUnitRef].polColor = seeds[seedKey].polColor;
+                                    remainingLand--;
+                                }
+                                buildPoints[thisUnitRef] = [element];
+                                if (element==="up"||element==="down") {
+                                    if (thisSet[key].indexOf("left")!==-1) {
+                                    buildPoints[thisUnitRef] = [...buildPoints[thisUnitRef],"left"];}
+                                    if (thisSet[key].indexOf("right")!==-1) {
+                                    buildPoints[thisUnitRef] = [...buildPoints[thisUnitRef],"right"];}
+                                }
+                            }
+                        }
+                    }
+                }
+                delete buildPoints[key];
+            }
+            counter++;
+        }
+        console.log(`For ${seedKey}: ${remainingLand} unused.`)
+        landCreated = landCreated+seeds[seedKey].landUnitsNum-remainingLand;
+    }
+    //make any water in x rows ice, consider defining any non-logged items as water
+    console.log(`Land created: ${landCreated}/${unitsOfLand}`);
+    return grid;
+}
+
+/*retry that^^
+set the number of "seeds" for the land- that could correspond to the number of continents
+each continent contains a percentage of the land available
+give each continent a separate color property for political map
+plant the seeds randomly on the map
+build the spaces up, down, left, right, and diagonal from the corners
+each space has a percentage likelihood of being land based on how much is left, but let's say never less than 50%
+so that means that the percent of each one being land would be the totalamount-amountDone
+*/
+
 //---------FILE SAVER
 
 
