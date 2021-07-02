@@ -208,12 +208,7 @@ function randomizeMap(mapHandle,percentWater=60,rowsOfIce=8) {
     let seeds = {};
     let unitsOfLandRemaining = unitsOfLand;
     for (const element of places[mapHandle].subMap) {
-        let thisUnit;
-        do {
-            thisUnit = getRandomGridPoint();
-        } while (!(Object.keys(grid).indexOf(thisUnit.id)===-1));
         seeds[element.handle] = {};
-        seeds[element.handle].idRef = thisUnit.id;
         seeds[element.handle].polColor = element.polColor;
         if(places[mapHandle].subMap.indexOf(element)===places[mapHandle].subMap.length-1) {
             seeds[element.handle].landUnitsNum = unitsOfLandRemaining;
@@ -221,68 +216,51 @@ function randomizeMap(mapHandle,percentWater=60,rowsOfIce=8) {
             seeds[element.handle].landUnitsNum = Math.round(unitsOfLandRemaining/((places[mapHandle].subMap.length-places[mapHandle].subMap.indexOf(element))/2) * Math.random());
             unitsOfLandRemaining = unitsOfLandRemaining - seeds[element.handle].landUnitsNum;
         }
-        grid[thisUnit.id] = {geoColor: "green",polColor: element.polColor};
-        thisUnit.style.background = element.polColor;
     }
     console.log(seeds);
     console.log(grid);
     let landCreated = 0;
     for (const seedKey in seeds) {
         let remainingLand = seeds[seedKey].landUnitsNum;
-        let buildPoints = {}
-        buildPoints[seeds[seedKey].idRef] = ["up","right","down","left"];
+        let thisUnit;
+        do {
+            thisUnit = getRandomGridPoint();
+        } while (!(Object.keys(grid).indexOf(thisUnit.id)===-1));
+        seeds[seedKey].idRef = thisUnit.id;
+        grid[thisUnit.id] = {geoColor: "green",polColor: seeds[seedKey].polColor};
+        thisUnit.style.background = seeds[seedKey].polColor;
+        let buildPoints = [seeds[seedKey].idRef];
         let counter = 0;
         while (remainingLand>0&&(buildPoints&&counter<11250)) {
-            console.log(`Counter: ${counter}`);
-            console.log(buildPoints);
-            let thisSet = Object.assign({},buildPoints)
-            for (const key in thisSet) {
-                for(const element of thisSet[key]) {
-                    if (remainingLand>0) {
-                        let baseCoordinatesString = key.split("-");
-                        let baseCoordinates = [parseInt(baseCoordinatesString[0]),parseInt(baseCoordinatesString[1])];
-                        //console.log(baseCoordinates);
-                        let newCoordinates;
-                        if (element==="up") {
-                            newCoordinates = [baseCoordinates[0]-1,baseCoordinates[1]];
-                            //console.log(`Took ${element}: ${newCoordinates}`);
-                        }
-                        if (element==="right") {
-                            newCoordinates = [baseCoordinates[0],baseCoordinates[1]+1];
-                            //console.log(`Took ${element}: ${newCoordinates}`);
-                        }
-                        if (element==="down") {
-                            newCoordinates = [baseCoordinates[0]+1,baseCoordinates[1]];
-                            //console.log(`Took ${element}: ${newCoordinates}`);
-                        }
-                        if (element==="left") {
-                            newCoordinates = [baseCoordinates[0],baseCoordinates[1]-1];
-                            //console.log(`Took ${element}: ${newCoordinates}`);
-                        }
-                        if (!(newCoordinates[0]<1||(newCoordinates[0]>75||(newCoordinates[1]<1||newCoordinates[1]>150)))){
-                            let thisUnitRef = `${newCoordinates[0]}-${newCoordinates[1]}`;
-                            if(!grid[thisUnitRef]||grid[thisUnitRef].geoColor==="lightblue") {
-                                grid[thisUnitRef] = {geoColor: "lightblue", polColor: "lightblue"};
-                                let landChance = 100-(70*((seeds[seedKey].landUnitsNum-remainingLand)/seeds[seedKey].landUnitsNum));
-                                let landRoll = randomIntBetween(0,99);
-                                if (landRoll<landChance) {
-                                    document.getElementById(thisUnitRef).style.background = seeds[seedKey].polColor;
-                                    grid[thisUnitRef].geoColor = "green";
-                                    grid[thisUnitRef].polColor = seeds[seedKey].polColor;
-                                    remainingLand--;
-                                }
-                                buildPoints[thisUnitRef] = [element];
-                                if (element==="up"||element==="down") {
-                                    if (thisSet[key].indexOf("left")!==-1) {
-                                    buildPoints[thisUnitRef] = [...buildPoints[thisUnitRef],"left"];}
-                                    if (thisSet[key].indexOf("right")!==-1) {
-                                    buildPoints[thisUnitRef] = [...buildPoints[thisUnitRef],"right"];}
-                                }
-                            }
+            for(const element of buildPoints) {
+                if (remainingLand>0) {
+                    let baseCoordinatesString = element.split("-");
+                    let baseCoordinates = [parseInt(baseCoordinatesString[0]),parseInt(baseCoordinatesString[1])];
+                    let surroundingUnits = [];
+                    for (let i=0;i<8;i++) {
+                        let thisUnitRef = coordinatesToId(getAdjacentUnit(baseCoordinates,i));
+                        if((!grid[thisUnitRef]&&buildPoints.indexOf(thisUnitRef)===-1)||(grid[thisUnitRef]&&grid[thisUnitRef].geoColor==="lightblue")) {
+                            surroundingUnits = [...surroundingUnits,thisUnitRef];
                         }
                     }
+                    if (surroundingUnits.length>0) {
+                        let randomDirection = randomIntBetween(0,surroundingUnits.length-1);
+                        let thisUnitRef = surroundingUnits[randomDirection];
+                        //grid[thisUnitRef] = {geoColor: "lightblue", polColor: "lightblue"};
+                        let landChance = 100-(5*((seeds[seedKey].landUnitsNum-remainingLand)/seeds[seedKey].landUnitsNum));
+                        let landRoll = randomIntBetween(0,99);
+                        if (landRoll<landChance) {
+                            document.getElementById(thisUnitRef).style.background = seeds[seedKey].polColor;
+                            grid[thisUnitRef] = {};
+                            grid[thisUnitRef].geoColor = "green";
+                            grid[thisUnitRef].polColor = seeds[seedKey].polColor;
+                            remainingLand--;
+                        }
+                        buildPoints = [...buildPoints,thisUnitRef];
+                    } //else {
+                        //buildPoints.splice(buildPoints.indexOf(coordinatesToId(baseCoordinates)),1);
+                    //}
                 }
-                delete buildPoints[key];
             }
             counter++;
         }
@@ -292,6 +270,52 @@ function randomizeMap(mapHandle,percentWater=60,rowsOfIce=8) {
     //make any water in x rows ice, consider defining any non-logged items as water
     console.log(`Land created: ${landCreated}/${unitsOfLand}`);
     return grid;
+}
+
+function getAdjacentUnit(baseCoordinates,direction) {
+    let newCoordinates;
+    if (direction===0) {
+        newCoordinates = [baseCoordinates[0]-1,baseCoordinates[1]];
+    }
+    if (direction===1) {
+        newCoordinates = [baseCoordinates[0]-1,baseCoordinates[1]+1];
+    }
+    if (direction===2) {
+        newCoordinates = [baseCoordinates[0],baseCoordinates[1]+1];
+    }
+    if (direction===3) {
+        newCoordinates = [baseCoordinates[0]+1,baseCoordinates[1]+1];
+    }
+    if (direction===4) {
+        newCoordinates = [baseCoordinates[0]+1,baseCoordinates[1]];
+    }
+    if (direction===5) {
+        newCoordinates = [baseCoordinates[0]+1,baseCoordinates[1]-1];
+    }
+    if (direction===6) {
+        newCoordinates = [baseCoordinates[0],baseCoordinates[1]-1];
+    }
+    if (direction===7) {
+        newCoordinates = [baseCoordinates[0]-1,baseCoordinates[1]-1];
+    }
+    if (newCoordinates[0]<1) {
+        newCoordinates[0]=75;
+    }
+    if (newCoordinates[0]>75) {
+        newCoordinates[0]=1;
+    }
+    if (newCoordinates[1]<1) {
+        newCoordinates[1]=150;
+    }
+    if (newCoordinates[1]>150) {
+        newCoordinates[1]=1;
+    }
+    return newCoordinates;
+}
+
+function coordinatesToId(coordinates) {
+    let thisUnitRef = `${coordinates[0]}-${coordinates[1]}`;
+    return thisUnitRef;
 }
 
 /*retry that^^
